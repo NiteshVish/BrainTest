@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+
+    body {
+      background: linear-gradient(to right, #667eea, #764ba2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    h2 { margin-bottom: 15px; }
+
+    input, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    input {
+      border: 1px solid #ccc;
+      outline: none;
+    }
+
+    button {
+      background-color: #667eea;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #5a67d8;
+    }
+
+    .option-button {
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      margin: 8px 0;
+    }
+
+    .link-switch {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .link-switch a {
+      color: #667eea;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card" id="auth-container">
+    <div id="signup-box">
+      <h2>Sign Up</h2>
+      <input type="text" id="signup-username" placeholder="Username" />
+      <input type="password" id="signup-password" placeholder="Password" />
+      <button onclick="signup()">Sign Up</button>
+      <div class="link-switch">Already have an account? <a href="#" onclick="showLogin()">Login</a></div>
+    </div>
+
+    <div id="login-box" style="display: none;">
+      <h2>Login</h2>
+      <input type="text" id="login-username" placeholder="Username" />
+      <input type="password" id="login-password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <div class="link-switch">Don't have an account? <a href="#" onclick="showSignup()">Sign Up</a></div>
+    </div>
+  </div>
+
+  <div class="card" id="dashboard" style="display: none;">
+    <h2>Select Quiz Topic</h2>
+    <button onclick="startQuiz('html')">HTML</button>
+    <button onclick="startQuiz('css')">CSS</button>
+    <button onclick="startQuiz('javascript')">JavaScript</button>
+    <button onclick="startQuiz('react')">React</button>
+    <button onclick="startQuiz('node')">Node.js</button>
+  </div>
+
+  <div class="card" id="quiz-box" style="display: none;">
+    <div id="progress-container">
+      <div style="height: 10px; background: #ccc; border-radius: 5px;">
+        <div id="progress" style="height: 100%; width: 0%; background: #667eea;"></div>
+      </div>
+      <div id="timer" style="margin: 10px 0; font-weight: bold;"></div>
+    </div>
+    <h2 id="question-text"></h2>
+    <div id="options"></div>
+    <button onclick="nextQuestion()">Next</button>
+  </div>
+
+  <div class="card" id="result-box" style="display: none;">
+    <h2>Quiz Completed!</h2>
+    <p id="score"></p>
+    <button onclick="backToDashboard()">Back to Dashboard</button>
+  </div>
+
+  <script>
+    let currentQuiz = [], currentQuestion = 0, score = 0, timerInterval;
+
+    const questions = {
+      html: [
+        { q: "What does HTML stand for?", o: ["Hyper Text Markup Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language"], a: 0 },
+        { q: "Who is making the Web standards?", o: ["Mozilla", "Google", "W3C"], a: 2 }
+      ],
+      css: [
+        { q: "What does CSS stand for?", o: ["Colorful Style Sheets", "Creative Style Sheets", "Cascading Style Sheets"], a: 2 },
+        { q: "Which HTML tag is used to define an internal style sheet?", o: ["<script>", "<style>", "<css>"], a: 1 }
+      ],
+      javascript: [
+        { q: "Inside which HTML element do we put the JavaScript?", o: ["<script>", "<js>", "<javascript>"], a: 0 },
+        { q: "How do you write \"Hello World\" in an alert box?", o: ["alert('Hello World');", "msg('Hello World');", "alertBox('Hello World');"], a: 0 }
+      ],
+      react: [
+        { q: "What is the command to create a new React app?", o: ["npx create-react-app myApp", "npm install react", "react-new-app myApp"], a: 0 },
+        { q: "What is JSX?", o: ["JavaScript XML", "Java Syntax Extension", "JSON Extension"], a: 0 }
+      ],
+      node: [
+        { q: "Which command is used to initialize a Node.js project?", o: ["node init", "npm init", "npm start"], a: 1 },
+        { q: "Which module is used to create a web server in Node.js?", o: ["http", "fs", "url"], a: 0 }
+      ]
+    };
+
+    function signup() {
+      const u = document.getElementById('signup-username').value;
+      const p = document.getElementById('signup-password').value;
+      if (u && p) {
+        localStorage.setItem(u, p);
+        alert('Signup successful! Please login.');
+        showLogin();
+      } else alert('Please fill all fields');
+    }
+
+    function login() {
+      const u = document.getElementById('login-username').value;
+      const p = document.getElementById('login-password').value;
+      if (localStorage.getItem(u) === p) {
+        document.getElementById('auth-container').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+      } else alert('Invalid credentials');
+    }
+
+    function showLogin() {
+      document.getElementById('signup-box').style.display = 'none';
+      document.getElementById('login-box').style.display = 'block';
+    }
+
+    function showSignup() {
+      document.getElementById('login-box').style.display = 'none';
+      document.getElementById('signup-box').style.display = 'block';
+    }
+
+    function startQuiz(topic) {
+      currentQuiz = questions[topic];
+      currentQuestion = 0;
+      score = 0;
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('quiz-box').style.display = 'block';
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const q = currentQuiz[currentQuestion];
+      document.getElementById('question-text').innerText = `Q${currentQuestion + 1}: ${q.q}`;
+      const optionsDiv = document.getElementById('options');
+      optionsDiv.innerHTML = '';
+      q.o.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.innerText = opt;
+        btn.classList.add('option-button');
+        btn.onclick = () => handleAnswer(idx);
+        optionsDiv.appendChild(btn);
+      });
+      startTimer();
+      updateProgressBar();
+    }
+
+    function handleAnswer(selected) {
+      clearInterval(timerInterval);
+      const correct = currentQuiz[currentQuestion].a;
+      const btns = document.querySelectorAll('.option-button');
+      btns.forEach((btn, i) => {
+        btn.disabled = true;
+        btn.style.backgroundColor = (i === correct) ? 'green' : (i === selected) ? 'red' : '#2196F3';
+      });
+      if (selected === correct) score++;
+    }
+
+    function startTimer() {
+      let timeLeft = 15;
+      const timer = document.getElementById('timer');
+      timer.innerText = `Time left: ${timeLeft}s`;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timer.innerText = `Time left: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          nextQuestion();
+        }
+      }, 1000);
+    }
+
+    function nextQuestion() {
+      clearInterval(timerInterval);
+      currentQuestion++;
+      if (currentQuestion < currentQuiz.length) {
+        showQuestion();
+      } else {
+        document.getElementById('quiz-box').style.display = 'none';
+        document.getElementById('result-box').style.display = 'block';
+        document.getElementById('score').innerText = `Your score: ${score} / ${currentQuiz.length}`;
+      }
+    }
+
+    function updateProgressBar() {
+      const percent = ((currentQuestion + 1) / currentQuiz.length) * 100;
+      document.getElementById('progress').style.width = percent + '%';
+    }
+
+    function backToDashboard() {
+      document.getElementById('result-box').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
